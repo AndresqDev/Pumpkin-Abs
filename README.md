@@ -34,7 +34,7 @@ For J2KT translation, the Pumpkin Abs source must be included in the translated 
 pumpkin-abs/src/main/java
 ```
 
-The release `pumpkin-abs-0.1.3-sources.jar` contains those sources.
+The release `pumpkin-abs-0.1.3-sources.jar` contains those sources. The J2KT-generated plugin also needs the `pumpkin-compat/src/wasmWasiMain/kotlin` source set, because the Abs base class uses its command, event, and task registries.
 
 ## Quick start
 
