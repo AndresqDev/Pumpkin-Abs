@@ -4,6 +4,7 @@ public final class GeneratedPlugin extends com.example.absplugin.AbsExamplePlugi
     @Override
     protected void onEnable() {
         super.onEnable();
+        GeneratedCommands.register(this);
         GeneratedListeners.register(this);
     }
 }

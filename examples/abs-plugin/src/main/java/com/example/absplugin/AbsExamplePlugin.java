@@ -2,10 +2,8 @@ package com.example.absplugin;
 
 import java.util.List;
 
-import dev.j2kt.pumpkin.abs.PluginCommand;
 import dev.j2kt.pumpkin.abs.PumpkinAbsPlugin;
 import pumpkin.PluginMetadata;
-import pumpkin.TextComponent;
 
 public class AbsExamplePlugin extends PumpkinAbsPlugin {
     @Override
@@ -21,12 +19,5 @@ public class AbsExamplePlugin extends PumpkinAbsPlugin {
 
     @Override
     protected void onEnable() {
-        PluginCommand ping = new PluginCommand("ping", "Returns pong");
-        ping.executor((sender, command, label, args) -> {
-            sender.sendMessage(TextComponent.text("pong"));
-            return true;
-        });
-        registerCommand(ping);
-
     }
 }

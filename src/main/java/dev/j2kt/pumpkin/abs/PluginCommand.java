@@ -6,7 +6,7 @@ import java.util.List;
 import pumpkin.Command;
 
 /** Bukkit-style command definition with an executor. */
-public final class PluginCommand {
+public class PluginCommand {
     public String name;
     public List<String> aliases = new ArrayList<>();
     public String description;

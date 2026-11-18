@@ -1,13 +1,13 @@
 # Pumpkin Abs Example
 
-Bukkit-style example using `PumpkinAbsPlugin`, a command, an `@EventHandler` listener, and the generated listener bootstrap.
+Bukkit-style example using `PumpkinAbsPlugin`, a separate `CommandProvider` command, an `@EventHandler` listener, and the generated command/listener bootstrap.
 
 ## Generate listener registration
 
 From the Pumpkin Abs repository root:
 
 ```bash
-java -jar build/libs/pumpkin-abs-tools-0.1.0.jar \
+java -jar build/libs/pumpkin-abs-tools-0.1.1.jar \
   --source examples/abs-plugin/src/main/java \
   --package com.example.absplugin \
   --output examples/abs-plugin/src/generated/java \
@@ -18,7 +18,7 @@ java -jar build/libs/pumpkin-abs-tools-0.1.0.jar \
 
 ```bash
 javac --release 21 \
-  -cp build/libs/pumpkin-abs-0.1.0.jar:libs/pumpkin-stub.jar \
+  -cp build/libs/pumpkin-abs-0.1.1.jar:libs/pumpkin-stub.jar \
   -d examples/abs-plugin/build \
   $(find examples/abs-plugin/src -name '*.java')
 ```

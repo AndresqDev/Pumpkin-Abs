@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 public final class ListenerGenerator {
     private static final Pattern PACKAGE_PATTERN = Pattern.compile("\\bpackage\\s+([\\w.]+)\\s*;");
     private static final Pattern CLASS_PATTERN = Pattern.compile("\\b(?:public\\s+)?(?:final\\s+)?class\\s+(\\w+)[^\\{]*\\{");
+    private static final Pattern COMMAND_PATTERN = Pattern.compile("\\bclass\\s+(\\w+)\\s+implements\\s+(?:[\\w.]+\\.)?CommandProvider\\b");
     private static final Pattern HANDLER_PATTERN = Pattern.compile(
             "@EventHandler\\s*\\(([^)]*)\\)\\s*"
                     + "(?:public|protected|private)?\\s*(?:static\\s+)?(?:final\\s+)?"
@@ -52,41 +53,51 @@ public final class ListenerGenerator {
                     "Usage: ListenerGenerator --source <dir> --package <base.package> --output <dir> [--main <fully.qualified.MainClass>]");
         }
 
-        List<Handler> handlers = scan(sourceRoot);
-        String generated = generate(basePackage, handlers, mainClass);
+        ScanResult result = scan(sourceRoot);
+        String generated = generate(basePackage, result.handlers(), mainClass);
         Path outputDir = outputRoot.resolve(basePackage.replace('.', '/')).resolve("generated");
         Files.createDirectories(outputDir);
         Path output = outputDir.resolve("GeneratedListeners.java");
         Files.writeString(output, generated, StandardCharsets.UTF_8);
+        Files.writeString(outputDir.resolve("GeneratedCommands.java"), generateCommands(basePackage, result.commands()), StandardCharsets.UTF_8);
         if (mainClass != null) {
             Files.writeString(outputDir.resolve("GeneratedPlugin.java"), generatePlugin(basePackage, mainClass), StandardCharsets.UTF_8);
         }
-        System.out.println("Generated " + output + " with " + handlers.size() + " handler(s)");
+        System.out.println("Generated " + output + " with " + result.handlers().size() + " handler(s)");
     }
 
-    private static List<Handler> scan(Path root) throws IOException {
+    private static ScanResult scan(Path root) throws IOException {
         List<Handler> handlers = new ArrayList<>();
+        List<String> commands = new ArrayList<>();
         try (var files = Files.walk(root)) {
             for (Path file : files.filter(path -> path.toString().endsWith(".java")).toList()) {
-                handlers.addAll(scanFile(file));
+                ScanResult fileResult = scanFile(file);
+                handlers.addAll(fileResult.handlers());
+                commands.addAll(fileResult.commands());
             }
         }
-        return handlers;
+        return new ScanResult(handlers, commands);
     }
 
-    private static List<Handler> scanFile(Path file) throws IOException {
+    private static ScanResult scanFile(Path file) throws IOException {
         String source = Files.readString(file, StandardCharsets.UTF_8);
         Matcher packageMatcher = PACKAGE_PATTERN.matcher(source);
         if (!packageMatcher.find()) {
-            return List.of();
+            return new ScanResult(List.of(), List.of());
         }
         String packageName = packageMatcher.group(1);
         Matcher classMatcher = CLASS_PATTERN.matcher(source);
         if (!classMatcher.find()) {
-            return List.of();
+            return new ScanResult(List.of(), List.of());
         }
         String className = classMatcher.group(1);
         String qualifiedClass = packageName + "." + className;
+
+        List<String> commands = new ArrayList<>();
+        Matcher commandMatcher = COMMAND_PATTERN.matcher(source);
+        while (commandMatcher.find()) {
+            commands.add(packageName + "." + commandMatcher.group(1));
+        }
 
         List<Handler> handlers = new ArrayList<>();
         Matcher handlerMatcher = HANDLER_PATTERN.matcher(source);
@@ -100,7 +111,7 @@ public final class ListenerGenerator {
             handlers.add(new Handler(qualifiedClass, handlerMatcher.group(3), eventClass,
                     eventType, priority, ignoreCancelled));
         }
-        return handlers;
+        return new ScanResult(handlers, commands);
     }
 
     private static String extract(String annotation, Pattern pattern, String fallback) {
@@ -147,15 +158,32 @@ public final class ListenerGenerator {
         return out.toString();
     }
 
+    private static String generateCommands(String basePackage, List<String> commands) {
+        StringBuilder out = new StringBuilder();
+        out.append("package ").append(basePackage).append(".generated;\n\n");
+        out.append("import dev.j2kt.pumpkin.abs.PumpkinAbsPlugin;\n\n");
+        out.append("public final class GeneratedCommands {\n");
+        out.append("    public static void register(PumpkinAbsPlugin plugin) {\n");
+        for (String command : commands) {
+            out.append("        plugin.registerCommand(new ").append(command).append("().command());\n");
+        }
+        out.append("    }\n}\n");
+        return out.toString();
+    }
+
     private static String generatePlugin(String basePackage, String mainClass) {
         return "package " + basePackage + ".generated;\n\n"
                 + "public final class GeneratedPlugin extends " + mainClass + " {\n"
                 + "    @Override\n"
                 + "    protected void onEnable() {\n"
                 + "        super.onEnable();\n"
+                + "        GeneratedCommands.register(this);\n"
                 + "        GeneratedListeners.register(this);\n"
                 + "    }\n"
                 + "}\n";
+    }
+
+    private record ScanResult(List<Handler> handlers, List<String> commands) {
     }
 
     private record Handler(
