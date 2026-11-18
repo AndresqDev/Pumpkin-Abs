@@ -96,6 +96,16 @@ public abstract class PumpkinAbsPlugin extends PumpkinPlugin {
         return command;
     }
 
+    public final PluginCommand registerCommand(AbsCommand command) {
+        PluginCommand wrapped = new PluginCommand(command.name(), command.description());
+        for (String alias : command.aliases()) {
+            wrapped.alias(alias);
+        }
+        wrapped.permission(command.permission());
+        wrapped.executor((sender, cmd, label, args) -> command.onCommand(sender, label, args));
+        return registerCommand(wrapped);
+    }
+
     public final PluginCommand getCommand(String name) {
         PluginCommand command = registeredCommands.get(name);
         if (command == null) {

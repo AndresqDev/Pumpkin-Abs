@@ -1,17 +1,25 @@
 package com.example.absplugin.commands;
 
-import dev.j2kt.pumpkin.abs.CommandProvider;
-import dev.j2kt.pumpkin.abs.PluginCommand;
+import java.util.List;
+
+import dev.j2kt.pumpkin.abs.AbsCommand;
+import pumpkin.Command;
 import pumpkin.TextComponent;
 
-public final class PingCommand implements CommandProvider {
+public final class PingCommand extends AbsCommand {
     @Override
-    public PluginCommand command() {
-        PluginCommand command = new PluginCommand("ping", "Returns pong");
-        command.executor((sender, cmd, label, args) -> {
-            sender.sendMessage(TextComponent.text("pong"));
-            return true;
-        });
-        return command;
+    public String name() {
+        return "ping";
+    }
+
+    @Override
+    public String description() {
+        return "Returns pong";
+    }
+
+    @Override
+    public boolean onCommand(Command.CommandSender sender, String label, List<String> args) {
+        sender.sendMessage(TextComponent.text("pong"));
+        return true;
     }
 }

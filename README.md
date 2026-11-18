@@ -8,7 +8,7 @@ Metadata stays in `metadata()`. Plugin code registers commands and listeners in 
 
 | Component | Version |
 |---|---|
-| Pumpkin Abs | 0.1.1 |
+| Pumpkin Abs | 0.1.2 |
 | Java | 21 |
 | Pumpkin Stub | 0.1.0 |
 | J2KT Pumpkin | 0.1.1 |
@@ -22,11 +22,11 @@ Pumpkin Abs targets the synchronous v0.1 WIT ABI.
 Download the release JARs from GitHub:
 
 ```text
-pumpkin-abs-0.1.1.jar
-pumpkin-abs-0.1.1-sources.jar
+pumpkin-abs-0.1.2.jar
+pumpkin-abs-0.1.2-sources.jar
 ```
 
-Compile plugin Java against `pumpkin-abs-0.1.1.jar` and `pumpkin-stub-0.1.0.jar`.
+Compile plugin Java against `pumpkin-abs-0.1.2.jar` and `pumpkin-stub-0.1.0.jar`.
 
 For J2KT translation, the Pumpkin Abs source must be included in the translated source set. A plugin using the precompiled JAR at runtime needs the translated Abs sources in the Wasm build:
 
@@ -34,7 +34,7 @@ For J2KT translation, the Pumpkin Abs source must be included in the translated 
 pumpkin-abs/src/main/java
 ```
 
-The release `pumpkin-abs-0.1.1-sources.jar` contains those sources.
+The release `pumpkin-abs-0.1.2-sources.jar` contains those sources.
 
 ## Quick start
 
@@ -68,35 +68,45 @@ public class ExamplePlugin extends PumpkinAbsPlugin {
 
 ## Commands
 
-A command can live in its own file under `commands/` and implement `CommandProvider`:
+A command lives in its own file under `commands/` and extends `AbsCommand`. The command class contains only its metadata and execution logic; it does not construct `PluginCommand`.
 
 ```java
 package com.example.plugin.commands;
 
-import dev.j2kt.pumpkin.abs.CommandProvider;
-import dev.j2kt.pumpkin.abs.PluginCommand;
+import java.util.List;
+
+import dev.j2kt.pumpkin.abs.AbsCommand;
+import pumpkin.Command;
 import pumpkin.TextComponent;
 
-public final class PingCommand implements CommandProvider {
+public final class PingCommand extends AbsCommand {
     @Override
-    public PluginCommand command() {
-        PluginCommand command = new PluginCommand("ping", "Returns pong");
-        command.executor((sender, cmd, label, args) -> {
-            sender.sendMessage(TextComponent.text("pong"));
-            return true;
-        });
-        return command;
+    public String name() {
+        return "ping";
+    }
+
+    @Override
+    public String description() {
+        return "Returns pong";
+    }
+
+    @Override
+    public boolean onCommand(Command.CommandSender sender, String label, List<String> args) {
+        sender.sendMessage(TextComponent.text("pong"));
+        return true;
     }
 }
 ```
 
-`GeneratedCommands` detects `CommandProvider` implementations in the scanned source tree and registers them through the generated plugin. No command registration code is needed in the main plugin.
+`GeneratedCommands` detects `AbsCommand` subclasses and `CommandProvider` implementations. No command registration code is needed in the main plugin.
 
 Commands can also be registered manually:
 
 ```java
-registerCommand(new PingCommand().command());
+registerCommand(new PingCommand());
 ```
+
+`PluginCommand` remains available for commands that need to configure aliases, permissions, or executors directly.
 
 `getCommand("ping")` returns a registered command by name or alias. Register the permission node in metadata and with `registerPermission` when using an explicit permission.
 
@@ -127,15 +137,28 @@ public final class JoinListener {
 
 Pumpkin/Wasm does not provide runtime class or package reflection. Listener discovery therefore runs at build time.
 
-Generate listener registration from the plugin listener folder:
+Generate command and listener registration from the source tree:
 
 ```bash
-java -jar pumpkin-abs-tools-0.1.1.jar \
+java -jar pumpkin-abs-tools-0.1.2.jar \
   --source src/main/java \
   --package com.example.plugin \
   --output build/generated/abs \
   --main com.example.plugin.ExamplePlugin
 ```
+
+Custom folders are supported with repeatable `--listeners` and `--commands` options. Each option accepts a directory or an individual Java file:
+
+```bash
+java -jar pumpkin-abs-tools-0.1.2.jar \
+  --listeners src/main/java/com/example/plugin/mylisteners \
+  --commands src/main/java/com/example/plugin/mycommands \
+  --package com.example.plugin \
+  --output build/generated/abs \
+  --main com.example.plugin.ExamplePlugin
+```
+
+To register a single listener or command file, pass that file path to the corresponding option.
 
 The generator writes:
 
@@ -188,9 +211,9 @@ with default `ALLOW`.
 Artifacts:
 
 ```text
-build/libs/pumpkin-abs-0.1.1.jar
-build/libs/pumpkin-abs-0.1.1-sources.jar
-build/libs/pumpkin-abs-tools-0.1.1.jar
+build/libs/pumpkin-abs-0.1.2.jar
+build/libs/pumpkin-abs-0.1.2-sources.jar
+build/libs/pumpkin-abs-tools-0.1.2.jar
 ```
 
 ## Releases
@@ -210,7 +233,7 @@ git push origin v0.1.0
 - Command arguments are not yet exposed by the current stub bridge.
 - Explicit command permissions must be registered by the plugin.
 - Listener classes instantiated by generated code need public no-argument constructors and public event methods.
-- Command provider classes need public no-argument constructors.
+- Command classes need public no-argument constructors.
 - The Pumpkin Abs source must be included in the J2KT translation input; the precompiled JAR is not embedded into the Wasm component.
 - World generation is not part of this library.
 
