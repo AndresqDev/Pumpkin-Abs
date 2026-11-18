@@ -7,7 +7,7 @@ Bukkit-style example using `PumpkinAbsPlugin`, a separate `CommandProvider` comm
 From the Pumpkin Abs repository root:
 
 ```bash
-java -jar build/libs/pumpkin-abs-tools-0.1.2.jar \
+java -jar build/libs/pumpkin-abs-tools-0.1.3.jar \
   --source examples/abs-plugin/src/main/java \
   --package com.example.absplugin \
   --output examples/abs-plugin/src/generated/java \
@@ -18,7 +18,7 @@ java -jar build/libs/pumpkin-abs-tools-0.1.2.jar \
 
 ```bash
 javac --release 21 \
-  -cp build/libs/pumpkin-abs-0.1.2.jar:libs/pumpkin-stub.jar \
+  -cp build/libs/pumpkin-abs-0.1.3.jar:libs/pumpkin-stub.jar \
   -d examples/abs-plugin/build \
   $(find examples/abs-plugin/src -name '*.java')
 ```
@@ -28,7 +28,7 @@ javac --release 21 \
 Include the Pumpkin Abs sources, the example sources, and the generated sources:
 
 ```bash
-java -jar j2kt-pumpkin-0.1.1-all.jar \
+java -jar j2kt-pumpkin-0.1.2-all.jar \
   --target pumpkin \
   --classpath libs/pumpkin-stub.jar \
   --out build/translated \

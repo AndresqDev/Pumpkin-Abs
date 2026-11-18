@@ -8,10 +8,10 @@ Metadata stays in `metadata()`. Plugin code registers commands and listeners in 
 
 | Component | Version |
 |---|---|
-| Pumpkin Abs | 0.1.2 |
+| Pumpkin Abs | 0.1.3 |
 | Java | 21 |
-| Pumpkin Stub | 0.1.0 |
-| J2KT Pumpkin | 0.1.1 |
+| Pumpkin Stub | 0.1.1 |
+| J2KT Pumpkin | 0.1.2 |
 | Pumpkin Kotlin/Wasm API | 0.1.2 |
 | Pumpkin plugin WIT | `pumpkin:plugin@0.1.0` (synchronous) |
 
@@ -22,11 +22,11 @@ Pumpkin Abs targets the synchronous v0.1 WIT ABI.
 Download the release JARs from GitHub:
 
 ```text
-pumpkin-abs-0.1.2.jar
-pumpkin-abs-0.1.2-sources.jar
+pumpkin-abs-0.1.3.jar
+pumpkin-abs-0.1.3-sources.jar
 ```
 
-Compile plugin Java against `pumpkin-abs-0.1.2.jar` and `pumpkin-stub-0.1.0.jar`.
+Compile plugin Java against `pumpkin-abs-0.1.3.jar` and `pumpkin-stub-0.1.1.jar`.
 
 For J2KT translation, the Pumpkin Abs source must be included in the translated source set. A plugin using the precompiled JAR at runtime needs the translated Abs sources in the Wasm build:
 
@@ -34,7 +34,7 @@ For J2KT translation, the Pumpkin Abs source must be included in the translated 
 pumpkin-abs/src/main/java
 ```
 
-The release `pumpkin-abs-0.1.2-sources.jar` contains those sources.
+The release `pumpkin-abs-0.1.3-sources.jar` contains those sources.
 
 ## Quick start
 
@@ -65,6 +65,34 @@ public class ExamplePlugin extends PumpkinAbsPlugin {
 ```
 
 `onEnable` runs after the Pumpkin plugin context is available. `onDisable` is optional and runs before the base class unregisters event subscriptions.
+
+## Registration from the plugin main
+
+The base class exposes build-time registration markers and runtime registration methods.
+
+```java
+@Override
+protected void onEnable() {
+    registerListeners("mylisteners");
+    registerListeners("mylisteners/sectionone");
+    registerCommands("mycommands");
+}
+```
+
+The marker methods are read by `pumpkin-abs-tools` during the build. They do not scan packages at runtime because Pumpkin/Wasm does not provide reflection.
+
+Paths are resolved relative to the configured source root and the plugin package. Absolute paths and source-file paths are also accepted. Multiple paths may be passed to either method.
+
+For individual objects, use the runtime methods:
+
+```java
+registerCommand(new PingCommand());
+registerListener(new JoinListener());
+```
+
+`registerListener` requires a `Listener` implementation with a `register(PumpkinAbsPlugin)` method. For an annotated `@EventHandler` listener, either include its file or folder in a marker, or use the generated listener registry.
+
+Do not use both generated registration and manual registration for the same command or listener.
 
 ## Commands
 
@@ -110,7 +138,7 @@ registerCommand(new PingCommand());
 
 `getCommand("ping")` returns a registered command by name or alias. Register the permission node in metadata and with `registerPermission` when using an explicit permission.
 
-Command arguments are not yet exposed by the current command stub. The executor receives an empty argument list.
+Command arguments are passed to `onCommand` as a whitespace-separated list. The command is registered with a greedy argument node, so `/command value` and `/command` both reach the same executor.
 
 ## Listeners
 
@@ -140,7 +168,7 @@ Pumpkin/Wasm does not provide runtime class or package reflection. Listener disc
 Generate command and listener registration from the source tree:
 
 ```bash
-java -jar pumpkin-abs-tools-0.1.2.jar \
+java -jar pumpkin-abs-tools-0.1.3.jar \
   --source src/main/java \
   --package com.example.plugin \
   --output build/generated/abs \
@@ -150,7 +178,7 @@ java -jar pumpkin-abs-tools-0.1.2.jar \
 Custom folders are supported with repeatable `--listeners` and `--commands` options. Each option accepts a directory or an individual Java file:
 
 ```bash
-java -jar pumpkin-abs-tools-0.1.2.jar \
+java -jar pumpkin-abs-tools-0.1.3.jar \
   --listeners src/main/java/com/example/plugin/mylisteners \
   --commands src/main/java/com/example/plugin/mycommands \
   --package com.example.plugin \
@@ -211,9 +239,9 @@ with default `ALLOW`.
 Artifacts:
 
 ```text
-build/libs/pumpkin-abs-0.1.2.jar
-build/libs/pumpkin-abs-0.1.2-sources.jar
-build/libs/pumpkin-abs-tools-0.1.2.jar
+build/libs/pumpkin-abs-0.1.3.jar
+build/libs/pumpkin-abs-0.1.3-sources.jar
+build/libs/pumpkin-abs-tools-0.1.3.jar
 ```
 
 ## Releases
@@ -223,14 +251,14 @@ The workflow in `.github/workflows/release.yml` runs on tags matching `v*`. It b
 Publish with:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
 ## Limitations
 
 - Runtime reflection and runtime package scanning are unavailable in Pumpkin/Wasm. Listener discovery is a build-time step.
-- Command arguments are not yet exposed by the current stub bridge.
+- Command arguments are split on whitespace; quoted argument grouping is not implemented.
 - Explicit command permissions must be registered by the plugin.
 - Listener classes instantiated by generated code need public no-argument constructors and public event methods.
 - Command classes need public no-argument constructors.

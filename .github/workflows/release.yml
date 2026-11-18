@@ -83,12 +83,12 @@ jobs:
           Bukkit-style abstraction for Pumpkin plugins.
 
           - Java: 21
-          - Pumpkin Stub: 0.1.0
-          - J2KT Pumpkin: 0.1.1
+          - Pumpkin Stub: 0.1.1
+          - J2KT Pumpkin: 0.1.2
           - Pumpkin API: 0.1.2
           - WIT: pumpkin:plugin@0.1.0
 
-          The tools JAR generates listener registration and a generated plugin class from the listener source folder.
+          The tools JAR generates command and listener registration from configured source files or folders and produces a generated plugin class.
           EOF
 
       - name: Publish release

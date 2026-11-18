@@ -19,5 +19,7 @@ public class AbsExamplePlugin extends PumpkinAbsPlugin {
 
     @Override
     protected void onEnable() {
+        registerListeners("listeners");
+        registerCommands("commands");
     }
 }

@@ -36,6 +36,7 @@ public final class ListenerGenerator {
         String basePackage = null;
         Path outputRoot = null;
         String mainClass = null;
+        Path mainSource = null;
         List<Path> sourceRoots = new ArrayList<>();
         List<Path> listenerRoots = new ArrayList<>();
         List<Path> commandRoots = new ArrayList<>();
@@ -54,6 +55,8 @@ public final class ListenerGenerator {
                 outputRoot = Path.of(args[++i]);
             } else if (arg.equals("--main")) {
                 mainClass = args[++i];
+            } else if (arg.equals("--main-source")) {
+                mainSource = Path.of(args[++i]);
             } else {
                 throw new IllegalArgumentException("Unknown argument: " + arg);
             }
@@ -62,20 +65,45 @@ public final class ListenerGenerator {
         if (basePackage == null || outputRoot == null
                 || (sourceRoots.isEmpty() && listenerRoots.isEmpty() && commandRoots.isEmpty())) {
             throw new IllegalArgumentException(
-                    "Usage: ListenerGenerator [--source <path>] [--listeners <path>] [--commands <path>] "
+                    "Usage: ListenerGenerator [--source <path>] [--listeners <path>] [--commands <path>] [--main-source <file>] "
                             + "--package <base.package> --output <dir> [--main <fully.qualified.MainClass>]");
         }
 
-        Set<Path> listenerPaths = new LinkedHashSet<>(sourceRoots);
-        listenerPaths.addAll(listenerRoots);
-        if (listenerPaths.isEmpty()) {
-            listenerPaths.addAll(commandRoots);
+        if (mainSource == null && mainClass != null) {
+            for (Path root : sourceRoots) {
+                Path candidate = root.resolve(mainClass.replace('.', '/') + ".java");
+                if (Files.isRegularFile(candidate)) {
+                    mainSource = candidate;
+                    break;
+                }
+            }
         }
 
-        Set<Path> commandPaths = new LinkedHashSet<>(sourceRoots);
-        commandPaths.addAll(commandRoots);
-        if (commandPaths.isEmpty()) {
-            commandPaths.addAll(listenerRoots);
+        List<Path> registeredListeners = mainSource == null
+                ? List.of() : resolveMarkers(readMarkers(mainSource, "registerListeners"), sourceRoots, basePackage);
+        List<Path> registeredCommands = mainSource == null
+                ? List.of() : resolveMarkers(readMarkers(mainSource, "registerCommands"), sourceRoots, basePackage);
+
+        Set<Path> listenerPaths = new LinkedHashSet<>();
+        if (!registeredListeners.isEmpty()) {
+            listenerPaths.addAll(registeredListeners);
+        } else {
+            listenerPaths.addAll(sourceRoots);
+            listenerPaths.addAll(listenerRoots);
+            if (listenerPaths.isEmpty()) {
+                listenerPaths.addAll(commandRoots);
+            }
+        }
+
+        Set<Path> commandPaths = new LinkedHashSet<>();
+        if (!registeredCommands.isEmpty()) {
+            commandPaths.addAll(registeredCommands);
+        } else {
+            commandPaths.addAll(sourceRoots);
+            commandPaths.addAll(commandRoots);
+            if (commandPaths.isEmpty()) {
+                commandPaths.addAll(listenerRoots);
+            }
         }
 
         List<Handler> handlers = scan(listenerPaths, true);
@@ -93,6 +121,59 @@ public final class ListenerGenerator {
         }
         System.out.println("Generated " + handlers.size() + " handler(s) and "
                 + commands.size() + " command(s) in " + outputDir);
+    }
+
+    private static List<String> readMarkers(Path mainSource, String method) throws IOException {
+        if (!Files.isRegularFile(mainSource)) {
+            return List.of();
+        }
+        String source = Files.readString(mainSource, StandardCharsets.UTF_8);
+        Pattern call = Pattern.compile("\\b" + method + "\\s*\\(([^)]*)\\)");
+        Matcher matcher = call.matcher(source);
+        List<String> markers = new ArrayList<>();
+        while (matcher.find()) {
+            Matcher strings = Pattern.compile("\"([^\"]*)\"").matcher(matcher.group(1));
+            while (strings.find()) {
+                markers.add(strings.group(1));
+            }
+        }
+        return markers;
+    }
+
+    private static List<Path> resolveMarkers(List<String> markers, List<Path> sourceRoots, String basePackage) {
+        List<Path> paths = new ArrayList<>();
+        for (String marker : markers) {
+            Path resolved = resolveMarker(marker, sourceRoots, basePackage);
+            if (resolved != null) {
+                paths.add(resolved);
+            }
+        }
+        return paths;
+    }
+
+    private static Path resolveMarker(String marker, List<Path> sourceRoots, String basePackage) {
+        Path direct = Path.of(marker);
+        if (Files.exists(direct)) {
+            return direct;
+        }
+        for (Path root : sourceRoots) {
+            Path relative = root.resolve(marker);
+            if (Files.exists(relative)) {
+                return relative;
+            }
+            Path packageRelative = root.resolve(basePackage.replace('.', '/')).resolve(marker);
+            if (Files.exists(packageRelative)) {
+                return packageRelative;
+            }
+        }
+        String dotted = marker.replace('.', '/');
+        for (Path root : sourceRoots) {
+            Path relative = root.resolve(dotted);
+            if (Files.exists(relative)) {
+                return relative;
+            }
+        }
+        return null;
     }
 
     private static List<Handler> scan(Set<Path> roots, boolean listeners) throws IOException {

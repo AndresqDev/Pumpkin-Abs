@@ -19,7 +19,8 @@ public final class PingCommand extends AbsCommand {
 
     @Override
     public boolean onCommand(Command.CommandSender sender, String label, List<String> args) {
-        sender.sendMessage(TextComponent.text("pong"));
+        String response = args.isEmpty() ? "pong" : "pong " + args.get(0);
+        sender.sendMessage(TextComponent.text(response));
         return true;
     }
 }

@@ -83,11 +83,12 @@ public abstract class PumpkinAbsPlugin extends PumpkinPlugin {
         names.add(command.name);
         names.addAll(command.aliases);
 
-        getCommands().register(
+        getCommands().registerWithArgs(
                 context,
                 new Command(names, command.description),
                 permission,
-                (sender, srv, args) -> command.execute(sender, command.name, new ArrayList<>()) ? 1 : 0);
+                (sender, srv, args) -> command.execute(sender, command.name, new ArrayList<>()) ? 1 : 0,
+                (sender, srv, args) -> command.execute(sender, command.name, splitArgs(args)) ? 1 : 0);
 
         registeredCommands.put(command.name, command);
         for (String alias : command.aliases) {
@@ -114,9 +115,26 @@ public abstract class PumpkinAbsPlugin extends PumpkinPlugin {
         return command;
     }
 
+    public final void registerListener(Listener listener) {
+        listener.register(this);
+    }
+
     public final void registerEvents(Listener listener) {
         listener.register(this);
     }
+
+    public final void registerListeners(String... paths) {
+    }
+
+    public final void registerCommands(String... paths) {
+    }
+
+    public final void registerCommands(AbsCommand... commands) {
+        for (AbsCommand command : commands) {
+            registerCommand(command);
+        }
+    }
+
 
     public final EventSubscription listen(
             EventType type,
@@ -140,6 +158,27 @@ public abstract class PumpkinAbsPlugin extends PumpkinPlugin {
         if (registeredPermissions.add(node)) {
             requireContext().registerPermission(new Permission(node, description, defaultValue, List.of()));
         }
+    }
+
+    private static List<String> splitArgs(Command.ConsumedArgs args) {
+        String raw = args.getValue("args").asString();
+        List<String> values = new ArrayList<>();
+        String current = "";
+        for (int i = 0; i < raw.length(); i++) {
+            char value = raw.charAt(i);
+            if (Character.isWhitespace(value)) {
+                if (current.length() > 0) {
+                    values.add(current);
+                    current = "";
+                }
+            } else {
+                current = current + value;
+            }
+        }
+        if (current.length() > 0) {
+            values.add(current);
+        }
+        return values;
     }
 
     private PluginContext requireContext() {
