@@ -14,12 +14,15 @@ public final class PingCommand extends AbsCommand {
 
     @Override
     public String description() {
-        return "Returns pong";
+        return "Returns pong and echoes arguments";
     }
 
     @Override
     public boolean onCommand(Command.CommandSender sender, String label, List<String> args) {
-        String response = args.isEmpty() ? "pong" : "pong " + args.get(0);
+        String response = "pong";
+        for (String arg : args) {
+            response = response + " " + arg;
+        }
         sender.sendMessage(TextComponent.text(response));
         return true;
     }

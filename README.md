@@ -123,6 +123,24 @@ java -cp build/libs/pumpkin-abs-tools-0.2.0.jar \
 
 For APIs outside the Abs bootstrap, use the Stub types directly. They are not hidden behind a second wrapper hierarchy.
 
+## Development model
+
+The division is intentional:
+
+| Task | API |
+|---|---|
+| Plugin lifecycle, enable/disable, context | `PumpkinAbsPlugin` |
+| Commands and argument dispatch | `AbsCommand` / `PluginCommand` |
+| Listener declaration and registration | `@EventHandler`, `Listener`, generated listeners |
+| Permissions | `registerPermission` and `metadata()` |
+| Players, worlds, blocks, inventories, items | `pumpkin.*` types |
+| GUIs, boss bars, scoreboards, forms, packets | `pumpkin.*` types |
+| Tasks, IPC, AI goals | `getTasks()`/`scheduler()`, `getIpc()`/`ipc()`, `getAiGoals()`/`aiGoals()` |
+
+A practical rule: if Abs has a hook for the operation, use it; otherwise use the Stub type returned by the plugin or one of its accessors. Converting between Abs and Stub is not required because there are no parallel wrapper types.
+
+This boundary keeps the API understandable for Java development while avoiding a second, incomplete reimplementation of Pumpkin.
+
 ## Registration from the plugin main
 
 The base class exposes build-time registration markers and runtime registration methods.

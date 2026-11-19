@@ -48,4 +48,11 @@ pumpkin {
 
 The generator reads the `registerListeners("listeners")` and `registerCommands("commands")` markers from `AbsExamplePlugin`. The generated plugin registers every `@EventHandler` method under the listener path and every `AbsCommand` under the command path.
 
+The example command echoes the raw arguments:
+
+```text
+/ping                  -> pong
+/ping hello world      -> pong hello world
+```
+
 Add the J2KT compatibility source set `pumpkin-compat/src/wasmWasiMain/kotlin` to the Wasm build. The Abs base class uses its command and event registries.
