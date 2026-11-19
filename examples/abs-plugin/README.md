@@ -2,7 +2,7 @@
 
 Bukkit-style example using `PumpkinAbsPlugin`, a separate `CommandProvider` command, an `@EventHandler` listener, and the generated command/listener bootstrap.
 
-## Generate listener registration
+## Generate command and listener registration
 
 From the Pumpkin Abs repository root:
 
@@ -45,4 +45,6 @@ pumpkin {
 }
 ```
 
-The generated plugin registers every `@EventHandler` method found in the listener source tree.
+The generator reads the `registerListeners("listeners")` and `registerCommands("commands")` markers from `AbsExamplePlugin`. The generated plugin registers every `@EventHandler` method under the listener path and every `AbsCommand` under the command path.
+
+Add the J2KT compatibility source set `pumpkin-compat/src/wasmWasiMain/kotlin` to the Wasm build. The Abs base class uses its command and event registries.

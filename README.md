@@ -4,6 +4,8 @@ Bukkit-style abstraction for Pumpkin plugins. Pumpkin Abs sits between the Pumpk
 
 Metadata stays in `metadata()`. Plugin code registers commands and listeners in `onEnable()` instead of the raw Pumpkin lifecycle.
 
+Pumpkin Abs does not reimplement Pumpkin Stub. It adds the plugin bootstrap and registration layer; gameplay types such as players, worlds, inventories, GUIs, events, packets, and tasks are still used directly from the stub. See [COVERAGE.md](COVERAGE.md) for the exact boundary and current limitations.
+
 ## Compatibility
 
 | Component | Version |
@@ -34,7 +36,7 @@ For J2KT translation, the Pumpkin Abs source must be included in the translated 
 pumpkin-abs/src/main/java
 ```
 
-The release `pumpkin-abs-0.1.3-sources.jar` contains those sources. The J2KT-generated plugin also needs the `pumpkin-compat/src/wasmWasiMain/kotlin` source set, because the Abs base class uses its command, event, and task registries.
+The release `pumpkin-abs-0.1.3-sources.jar` contains those sources. The J2KT-generated plugin also needs the `pumpkin-compat/src/wasmWasiMain/kotlin` source set, because the Abs base class uses its command and event registries.
 
 ## Quick start
 
@@ -83,11 +85,13 @@ The marker methods are read by `pumpkin-abs-tools` during the build. They do not
 
 Paths are resolved relative to the configured source root and the plugin package. Absolute paths and source-file paths are also accepted. Multiple paths may be passed to either method.
 
+The generator reads these markers when `--main` resolves the main source file or when `--main-source` is supplied. The marker methods are no-ops at runtime; the generated plugin performs the registration.
+
 For individual objects, use the runtime methods:
 
 ```java
 registerCommand(new PingCommand());
-registerListener(new JoinListener());
+registerListener(new ManualJoinListener());
 ```
 
 `registerListener` requires a `Listener` implementation with a `register(PumpkinAbsPlugin)` method. For an annotated `@EventHandler` listener, either include its file or folder in a marker, or use the generated listener registry.
@@ -120,7 +124,8 @@ public final class PingCommand extends AbsCommand {
 
     @Override
     public boolean onCommand(Command.CommandSender sender, String label, List<String> args) {
-        sender.sendMessage(TextComponent.text("pong"));
+        String response = args.isEmpty() ? "pong" : "pong " + args.get(0);
+        sender.sendMessage(TextComponent.text(response));
         return true;
     }
 }
@@ -188,6 +193,8 @@ java -jar pumpkin-abs-tools-0.1.3.jar \
 
 To register a single listener or command file, pass that file path to the corresponding option.
 
+If the main source file cannot be derived from `--main`, pass it explicitly with `--main-source`. The generator reads any `registerListeners` and `registerCommands` markers from that file.
+
 The generator writes:
 
 ```text
@@ -208,10 +215,27 @@ The main plugin class must not be `final`.
 
 Add `build/generated/abs` to the translated Java source set together with the Pumpkin Abs sources and the plugin sources.
 
-Without generated discovery, listeners can be registered manually:
+Without generated discovery, implement `Listener` and register it manually:
 
 ```java
-registerEvents(new JoinListener());
+public final class ManualJoinListener implements Listener {
+    @Override
+    public void register(PumpkinAbsPlugin plugin) {
+        plugin.listen(
+                EventType.PLAYER_JOIN_EVENT,
+                EventPriority.NORMAL,
+                false,
+                (server, event) -> {
+                    Event.PlayerJoinEvent join = (Event.PlayerJoinEvent) event;
+                    join.getPlayer().sendMessage(TextComponent.text("Welcome"));
+                    return event;
+                });
+    }
+}
+```
+
+```java
+registerListener(new ManualJoinListener());
 ```
 
 ## Permissions
