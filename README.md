@@ -10,10 +10,10 @@ Pumpkin Abs does not reimplement Pumpkin Stub. It adds the plugin bootstrap and 
 
 | Component | Version |
 |---|---|
-| Pumpkin Abs | 0.2.0 |
+| Pumpkin Abs | 0.2.1 |
 | Java | 21 |
-| Pumpkin Stub | 0.1.1 |
-| J2KT Pumpkin | 0.1.3 |
+| Pumpkin Stub | 0.2.0 |
+| J2KT Pumpkin | 0.1.4 |
 | Pumpkin Kotlin/Wasm API | 0.1.2 |
 | Pumpkin plugin WIT | `pumpkin:plugin@0.1.0` (synchronous) |
 
@@ -24,11 +24,11 @@ Pumpkin Abs targets the synchronous v0.1 WIT ABI.
 Download the release JARs from GitHub:
 
 ```text
-pumpkin-abs-0.2.0.jar
-pumpkin-abs-0.2.0-sources.jar
+pumpkin-abs-0.2.1.jar
+pumpkin-abs-0.2.1-sources.jar
 ```
 
-Compile plugin Java against `pumpkin-abs-0.2.0.jar` and `pumpkin-stub-0.1.1.jar`.
+Compile plugin Java against `pumpkin-abs-0.2.1.jar` and `pumpkin-stub-0.1.1.jar`.
 
 For J2KT translation, the Pumpkin Abs source must be included in the translated source set. A plugin using the precompiled JAR at runtime needs the translated Abs sources in the Wasm build:
 
@@ -37,7 +37,7 @@ pumpkin-abs/src/main/java
 pumpkin-abs/src/generated/java
 ```
 
-The release `pumpkin-abs-0.2.0-sources.jar` contains those sources. The J2KT-generated plugin also needs the `pumpkin-compat/src/wasmWasiMain/kotlin` source set, because the Abs base class uses its command and event registries.
+The release `pumpkin-abs-0.2.1-sources.jar` contains those sources. The J2KT-generated plugin also needs the `pumpkin-compat/src/wasmWasiMain/kotlin` source set, because the Abs base class uses its command and event registries.
 
 ## Quick start
 
@@ -115,7 +115,7 @@ The task reads `pumpkin-stub/src/main/java/pumpkin/PumpkinPlugin.java` and write
 The same generator is available in the tools JAR:
 
 ```bash
-java -cp build/libs/pumpkin-abs-tools-0.2.0.jar \
+java -cp build/libs/pumpkin-abs-tools-0.2.1.jar \
   dev.j2kt.pumpkin.abs.generator.ReexportGenerator \
   --stub-source ../pumpkin-stub/src/main/java \
   --output src/generated/java
@@ -246,7 +246,7 @@ Pumpkin/Wasm does not provide runtime class or package reflection. Listener disc
 Generate command and listener registration from the source tree:
 
 ```bash
-java -jar pumpkin-abs-tools-0.2.0.jar \
+java -jar pumpkin-abs-tools-0.2.1.jar \
   --source src/main/java \
   --package com.example.plugin \
   --output build/generated/abs \
@@ -256,7 +256,7 @@ java -jar pumpkin-abs-tools-0.2.0.jar \
 Custom folders are supported with repeatable `--listeners` and `--commands` options. Each option accepts a directory or an individual Java file:
 
 ```bash
-java -jar pumpkin-abs-tools-0.2.0.jar \
+java -jar pumpkin-abs-tools-0.2.1.jar \
   --listeners src/main/java/com/example/plugin/mylisteners \
   --commands src/main/java/com/example/plugin/mycommands \
   --package com.example.plugin \
@@ -342,9 +342,9 @@ Regenerate the Stub facade when the Stub source changes:
 Artifacts:
 
 ```text
-build/libs/pumpkin-abs-0.2.0.jar
-build/libs/pumpkin-abs-0.2.0-sources.jar
-build/libs/pumpkin-abs-tools-0.2.0.jar
+build/libs/pumpkin-abs-0.2.1.jar
+build/libs/pumpkin-abs-0.2.1-sources.jar
+build/libs/pumpkin-abs-tools-0.2.1.jar
 ```
 
 ## Releases
@@ -354,8 +354,8 @@ The workflow in `.github/workflows/release.yml` runs on tags matching `v*`. It b
 Publish with:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.2.1
+git push origin v0.2.1
 ```
 
 ## Limitations
