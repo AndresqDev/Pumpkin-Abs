@@ -4,16 +4,29 @@ plugins {
 }
 
 group = 'dev.j2kt'
-version = '0.1.3'
+version = '0.2.0'
 
 dependencies {
     compileOnly files('libs/pumpkin-stub.jar')
 }
 
 sourceSets {
+    main {
+        java.srcDir 'src/generated/java'
+    }
     tools {
         java.srcDir 'tools/src/main/java'
     }
+}
+
+tasks.register('generateReexports', JavaExec) {
+    group = 'build'
+    description = 'Generates the Abs re-export facade from the Pumpkin stub source tree.'
+    dependsOn tasks.named('toolsClasses')
+    classpath = sourceSets.tools.runtimeClasspath
+    mainClass = 'dev.j2kt.pumpkin.abs.generator.ReexportGenerator'
+    args '--stub-source', providers.gradleProperty('stubSource').getOrElse('../pumpkin-stub/src/main/java'),
+            '--output', 'src/generated/java'
 }
 
 tasks.register('toolsJar', Jar) {

@@ -10,10 +10,10 @@ Pumpkin Abs does not reimplement Pumpkin Stub. It adds the plugin bootstrap and 
 
 | Component | Version |
 |---|---|
-| Pumpkin Abs | 0.1.3 |
+| Pumpkin Abs | 0.2.0 |
 | Java | 21 |
 | Pumpkin Stub | 0.1.1 |
-| J2KT Pumpkin | 0.1.2 |
+| J2KT Pumpkin | 0.1.3 |
 | Pumpkin Kotlin/Wasm API | 0.1.2 |
 | Pumpkin plugin WIT | `pumpkin:plugin@0.1.0` (synchronous) |
 
@@ -24,19 +24,20 @@ Pumpkin Abs targets the synchronous v0.1 WIT ABI.
 Download the release JARs from GitHub:
 
 ```text
-pumpkin-abs-0.1.3.jar
-pumpkin-abs-0.1.3-sources.jar
+pumpkin-abs-0.2.0.jar
+pumpkin-abs-0.2.0-sources.jar
 ```
 
-Compile plugin Java against `pumpkin-abs-0.1.3.jar` and `pumpkin-stub-0.1.1.jar`.
+Compile plugin Java against `pumpkin-abs-0.2.0.jar` and `pumpkin-stub-0.1.1.jar`.
 
 For J2KT translation, the Pumpkin Abs source must be included in the translated source set. A plugin using the precompiled JAR at runtime needs the translated Abs sources in the Wasm build:
 
 ```text
 pumpkin-abs/src/main/java
+pumpkin-abs/src/generated/java
 ```
 
-The release `pumpkin-abs-0.1.3-sources.jar` contains those sources. The J2KT-generated plugin also needs the `pumpkin-compat/src/wasmWasiMain/kotlin` source set, because the Abs base class uses its command and event registries.
+The release `pumpkin-abs-0.2.0-sources.jar` contains those sources. The J2KT-generated plugin also needs the `pumpkin-compat/src/wasmWasiMain/kotlin` source set, because the Abs base class uses its command and event registries.
 
 ## Quick start
 
@@ -67,6 +68,60 @@ public class ExamplePlugin extends PumpkinAbsPlugin {
 ```
 
 `onEnable` runs after the Pumpkin plugin context is available. `onDisable` is optional and runs before the base class unregisters event subscriptions.
+
+## Stub access and generated facade
+
+Abs does not duplicate the Pumpkin Stub type hierarchy. The re-export strategy is intentional: gameplay objects remain the original `pumpkin.*` types, so they stay compatible with Stub, J2KT, and generated code.
+
+The base class exposes common entry points directly:
+
+```java
+Player player = getPlayer("Alex");
+World world = getWorld("world");
+Iterable<Player> players = getOnlinePlayers();
+Iterable<World> worlds = getWorlds();
+
+broadcast("Server message");
+double tps = getTps();
+double mspt = getMspt();
+
+EventRegistry events = events();
+CommandRegistry commands = commands();
+TaskScheduler tasks = scheduler();
+IpcRegistry ipc = ipc();
+AiGoalRegistry aiGoals = aiGoals();
+```
+
+`getOnlinePlayers` and `getWorlds` return `Iterable` so the same source compiles in Java and Kotlin/Wasm. Use `getServer().getAllPlayers()` and `getServer().getAllWorlds()` when a concrete `List` is required.
+
+The `dev.j2kt.pumpkin.abs.reexport.AbsApi` class is generated from the Stub source and exposes the same resource registries:
+
+```java
+AbsApi.events(this);
+AbsApi.commands(this);
+AbsApi.scheduler(this);
+AbsApi.ipc(this);
+AbsApi.aiGoals(this);
+```
+
+Regenerate it when Stub changes:
+
+```bash
+./gradlew generateReexports -PstubSource=../pumpkin-stub/src/main/java
+```
+
+The task reads `pumpkin-stub/src/main/java/pumpkin/PumpkinPlugin.java` and writes `src/generated/java`. The generated source is part of the Abs artifact and is included in the J2KT translation input.
+
+The same generator is available in the tools JAR:
+
+```bash
+java -cp build/libs/pumpkin-abs-tools-0.2.0.jar \
+  dev.j2kt.pumpkin.abs.generator.ReexportGenerator \
+  --stub-source ../pumpkin-stub/src/main/java \
+  --output src/generated/java
+```
+
+For APIs outside the Abs bootstrap, use the Stub types directly. They are not hidden behind a second wrapper hierarchy.
 
 ## Registration from the plugin main
 
@@ -173,7 +228,7 @@ Pumpkin/Wasm does not provide runtime class or package reflection. Listener disc
 Generate command and listener registration from the source tree:
 
 ```bash
-java -jar pumpkin-abs-tools-0.1.3.jar \
+java -jar pumpkin-abs-tools-0.2.0.jar \
   --source src/main/java \
   --package com.example.plugin \
   --output build/generated/abs \
@@ -183,7 +238,7 @@ java -jar pumpkin-abs-tools-0.1.3.jar \
 Custom folders are supported with repeatable `--listeners` and `--commands` options. Each option accepts a directory or an individual Java file:
 
 ```bash
-java -jar pumpkin-abs-tools-0.1.3.jar \
+java -jar pumpkin-abs-tools-0.2.0.jar \
   --listeners src/main/java/com/example/plugin/mylisteners \
   --commands src/main/java/com/example/plugin/mycommands \
   --package com.example.plugin \
@@ -213,7 +268,7 @@ pumpkin {
 
 The main plugin class must not be `final`.
 
-Add `build/generated/abs` to the translated Java source set together with the Pumpkin Abs sources and the plugin sources.
+Add `build/generated/abs` to the translated Java source set together with the Pumpkin Abs sources, `pumpkin-abs/src/generated/java`, and the plugin sources.
 
 Without generated discovery, implement `Listener` and register it manually:
 
@@ -260,12 +315,18 @@ with default `ALLOW`.
 ./gradlew clean build toolsJar
 ```
 
+Regenerate the Stub facade when the Stub source changes:
+
+```bash
+./gradlew generateReexports -PstubSource=../pumpkin-stub/src/main/java
+```
+
 Artifacts:
 
 ```text
-build/libs/pumpkin-abs-0.1.3.jar
-build/libs/pumpkin-abs-0.1.3-sources.jar
-build/libs/pumpkin-abs-tools-0.1.3.jar
+build/libs/pumpkin-abs-0.2.0.jar
+build/libs/pumpkin-abs-0.2.0-sources.jar
+build/libs/pumpkin-abs-tools-0.2.0.jar
 ```
 
 ## Releases
@@ -275,18 +336,21 @@ The workflow in `.github/workflows/release.yml` runs on tags matching `v*`. It b
 Publish with:
 
 ```bash
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 ## Limitations
 
 - Runtime reflection and runtime package scanning are unavailable in Pumpkin/Wasm. Listener discovery is a build-time step.
+- Gameplay types remain Stub types. Abs does not provide a second wrapper hierarchy such as `AbsPlayer` or `AbsWorld`.
+- `getOnlinePlayers` and `getWorlds` return `Iterable`; use `getServer()` for `List` access.
+- `AbsApi` must be regenerated when the Stub source changes.
 - Command arguments are split on whitespace; quoted argument grouping is not implemented.
 - Explicit command permissions must be registered by the plugin.
 - Listener classes instantiated by generated code need public no-argument constructors and public event methods.
 - Command classes need public no-argument constructors.
-- The Pumpkin Abs source must be included in the J2KT translation input; the precompiled JAR is not embedded into the Wasm component.
+- The Pumpkin Abs source and generated facade source must be included in the J2KT translation input; the precompiled JAR is not embedded into the Wasm component.
 - World generation is not part of this library.
 
 ## Source

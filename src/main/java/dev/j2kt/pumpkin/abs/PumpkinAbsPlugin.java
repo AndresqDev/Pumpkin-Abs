@@ -7,14 +7,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import pumpkin.AiGoalRegistry;
 import pumpkin.Command;
+import pumpkin.CommandRegistry;
 import pumpkin.EventPriority;
+import pumpkin.EventRegistry;
 import pumpkin.EventSubscription;
 import pumpkin.EventType;
+import pumpkin.IpcRegistry;
 import pumpkin.Permission;
+import pumpkin.Player;
 import pumpkin.PluginContext;
 import pumpkin.PumpkinPlugin;
 import pumpkin.Server;
+import pumpkin.TaskScheduler;
+import pumpkin.TextComponent;
+import pumpkin.World;
 
 /**
  * Base class for Bukkit-style Pumpkin plugins.
@@ -25,7 +33,7 @@ import pumpkin.Server;
  */
 public abstract class PumpkinAbsPlugin extends PumpkinPlugin {
     private PluginContext pluginContext;
-    private Server server;
+    private Server pluginServer;
     private final Map<String, PluginCommand> registeredCommands = new HashMap<>();
     private final List<EventSubscription> eventSubscriptions = new ArrayList<>();
     private final Set<String> registeredPermissions = new HashSet<>();
@@ -33,7 +41,7 @@ public abstract class PumpkinAbsPlugin extends PumpkinPlugin {
     @Override
     public final void onLoad(PluginContext context) {
         this.pluginContext = context;
-        this.server = context.getServer();
+        this.pluginServer = context.getServer();
         onEnable();
     }
 
@@ -58,11 +66,63 @@ public abstract class PumpkinAbsPlugin extends PumpkinPlugin {
     }
 
     public final Server getServer() {
-        return server;
+        return pluginServer;
     }
 
     public final String getDataFolder() {
         return requireContext().getDataFolder();
+    }
+
+    public final EventRegistry events() {
+        return getEvents();
+    }
+
+    public final CommandRegistry commands() {
+        return getCommands();
+    }
+
+    public final TaskScheduler scheduler() {
+        return getTasks();
+    }
+
+    public final IpcRegistry ipc() {
+        return getIpc();
+    }
+
+    public final AiGoalRegistry aiGoals() {
+        return getAiGoals();
+    }
+
+    public final Iterable<Player> getOnlinePlayers() {
+        return getServer().getAllPlayers();
+    }
+
+    public final Player getPlayer(String name) {
+        return getServer().getPlayer(name);
+    }
+
+    public final Iterable<World> getWorlds() {
+        return getServer().getAllWorlds();
+    }
+
+    public final World getWorld(String name) {
+        return getServer().getWorld(name);
+    }
+
+    public final void broadcast(String message) {
+        getServer().broadcast(message);
+    }
+
+    public final void broadcast(TextComponent message) {
+        getServer().broadcastMessage(message);
+    }
+
+    public final double getTps() {
+        return getServer().getTps();
+    }
+
+    public final double getMspt() {
+        return getServer().getMspt();
     }
 
     public final String getPluginName() {
